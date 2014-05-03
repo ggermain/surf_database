@@ -33,36 +33,44 @@ def get_info_for_spot(br, name, url)
   puts "\n"
 
 
-  tide = br.div(:class => 'livetide')
-  tide = tide.span.text
-  #puts "tide: " + tide
-  #puts "\n"
+  begin
 
-  swell = br.spans(:id => /current-surf-period*/)
-  swells = ""
-  for s in swell
-    swells += " ; " + s.text
+    tide = br.div(:class => 'livetide')
+    tide = tide.span.text
+    #puts "tide: " + tide
+    #puts "\n"
+
+    swell = br.spans(:id => /current-surf-period*/)
+    swells = ""
+    for s in swell
+      swells += " ; " + s.text
+    end
+    swell = swells
+
+    wind = br.div(:id => 'curr-wind-div')
+    wind = wind.text
+
+    report_range = br.h2(:id => 'observed-wave-range')
+    report_range = report_range.text
+
+    report_conditions = br.div(:id => 'observed-spot-conditions')
+    report_conditions = report_conditions.text
+
+    report_text = br.div(:id => 'observed-spot-conditions-summary')
+    report_text = report_text.text
+
+
+    spot =  {'name'=> name, 'time' => time_string, 'date'=> date_string, 'tide'=>tide, 'swells'=>swell, 'wind'=>wind, 'report_range'=>report_range, 'report_conditions'=>report_conditions, 'report_text'=>report_text}
+
+    SURFSPOTS << spot
+
+  rescue
+    puts $!, $@
+    puts "continuing to next page"
   end
-  swell = swells
-
-  wind = br.div(:id => 'curr-wind-div')
-  wind = wind.text
-
-  report_range = br.h2(:id => 'observed-wave-range')
-  report_range = report_range.text
-
-  report_conditions = br.div(:id => 'observed-spot-conditions')
-  report_conditions = report_conditions.text
-
-  report_text = br.div(:id => 'observed-spot-conditions-summary')
-  report_text = report_text.text
-
-
-  spot =  {'name'=> name, 'time' => time_string, 'date'=> date_string, 'tide'=>tide, 'swells'=>swell, 'wind'=>wind, 'report_range'=>report_range, 'report_conditions'=>report_conditions, 'report_text'=>report_text}
 
 
 
-  SURFSPOTS << spot
 end
 
 
@@ -106,7 +114,12 @@ def scrape_pages()
     puts spot['report_range']
     puts spot['report_conditions']
     puts spot['report_text']
-    coll.insert(spot)
+    begin
+      coll.insert(spot)
+    rescue
+      puts $!, $@
+      puts "failed to insert #{spot['name']} continuing..."
+    end
     puts "\n"
   end
 
@@ -119,7 +132,7 @@ end
 while true
   if  check_time(7, 45, 7, 55)
     scrape_pages()
-  elsif check_time(2, 15, 2, 25)
+  elsif check_time(14, 15, 14, 25)
     scrape_pages()
   else
     puts "not running"
